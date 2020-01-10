@@ -17,7 +17,7 @@ function AddArticle(props) {
   const [showDate, setShowDate] = useState(); //发布日期
   const [updateDate, setUpdateDate] = useState(); //修改日志的日期
   const [typeInfo, setTypeInfo] = useState([]); // 文章类别信息
-  const [selectedType, setSelectType] = useState('视频教程'); //选择的文章类别
+  const [selectedType, setSelectType] = useState('请选择'); //选择的文章类别
   marked.setOptions({
     renderer: marked.Renderer(),
     gfm: true,
@@ -55,6 +55,7 @@ function AddArticle(props) {
   };
   const selectTypeHandler = e => {
     console.log(e);
+    setSelectType(e);
   };
 
   const changeIntroduce = e => {
