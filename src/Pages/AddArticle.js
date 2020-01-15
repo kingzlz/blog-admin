@@ -30,6 +30,12 @@ function AddArticle(props) {
   });
   useEffect(() => {
     getTypeInfo();
+    //获得文章ID
+    let tmpId = props.match.params.id;
+    if (tmpId) {
+      setArticleId(tmpId);
+      getArticleById(tmpId);
+    }
   }, []);
 
   const getTypeInfo = () => {
@@ -63,13 +69,97 @@ function AddArticle(props) {
     let html = marked(e.target.value);
     setIntroducehtml(html);
   };
+
+  const getArticleById = id => {
+    axios(servicePath.getArticleById + id, {
+      withCredentials: true,
+      header: { 'Access-Control-Allow-Origin': '*' }
+    }).then(res => {
+      //let articleInfo= res.data.data[0]
+      setArticleTitle(res.data.data[0].title);
+      setArticleContent(res.data.data[0].article_content);
+      let html = marked(res.data.data[0].article_content);
+      setMarkdownContent(html);
+      setIntroducemd(res.data.data[0].introduce);
+      let tmpInt = marked(res.data.data[0].introduce);
+      setIntroducehtml(tmpInt);
+      setShowDate(res.data.data[0].addTime);
+      setSelectType(res.data.data[0].typeId);
+    });
+  };
+
+  const saveArticle = () => {
+    if (!selectedType) {
+      message.error('必须选择文章类别');
+      return false;
+    } else if (!articleTitle) {
+      message.error('文章名称不能为空');
+      return false;
+    } else if (!articleContent) {
+      message.error('文章内容不能为空');
+      return false;
+    } else if (!introducemd) {
+      message.error('简介不能为空');
+      return false;
+    } else if (!showDate) {
+      message.error('发布日期不能为空');
+      return false;
+    }
+    let dataProps = {}; //传递到接口的参数
+    dataProps.type_id = selectedType;
+    dataProps.title = articleTitle;
+    dataProps.article_content = articleContent;
+    dataProps.introduce = introducemd;
+    let datetext = showDate.replace('-', '/'); //把字符串转换成时间戳
+    dataProps.addTime = new Date(datetext).getTime() / 1000;
+
+    if (articleId === 0) {
+      console.log('articleId=:' + articleId);
+      dataProps.view_count = Math.ceil(Math.random() * 100) + 1000;
+      axios({
+        method: 'post',
+        url: servicePath.addArticle,
+        data: dataProps,
+        withCredentials: true
+      }).then(res => {
+        setArticleId(res.data.insertId);
+        if (res.data.isScuccess) {
+          message.success('文章保存成功');
+        } else {
+          message.error('文章保存失败');
+        }
+      });
+    } else {
+      dataProps.id = articleId;
+      axios({
+        method: 'post',
+        url: servicePath.updateArticle,
+        header: { 'Access-Control-Allow-Origin': '*' },
+        data: dataProps,
+        withCredentials: true
+      }).then(res => {
+        if (res.data.isScuccess) {
+          message.success('文章保存成功');
+        } else {
+          message.error('保存失败');
+        }
+      });
+    }
+  };
   return (
     <div>
       <Row gutter={5}>
         <Col span={18}>
           <Row gutter={10}>
-            <Col span={20}>
-              <Input placeholder="博客标题" size="large" />
+            <Col span={16}>
+              <Input
+                value={articleTitle}
+                placeholder="博客标题"
+                onChange={e => {
+                  setArticleTitle(e.target.value);
+                }}
+                size="large"
+              />
             </Col>
             <Col span={4}>
               &nbsp;
@@ -112,7 +202,7 @@ function AddArticle(props) {
           <Row>
             <Col span={24}>
               <Button size="large">暂存文章</Button> &nbsp;
-              <Button size="large" type="primary">
+              <Button type="primary" size="large" onClick={saveArticle}>
                 发布文章
               </Button>
               <br />
@@ -137,7 +227,11 @@ function AddArticle(props) {
             </Col>
             <Col span={12}>
               <div className="date-select">
-                <DatePicker placeholder="发布日期" size="large" />
+                <DatePicker
+                  onChange={(date, dateString) => setShowDate(dateString)}
+                  placeholder="发布日期"
+                  size="large"
+                />
               </div>
             </Col>
           </Row>
